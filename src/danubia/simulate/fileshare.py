@@ -168,11 +168,14 @@ def make_departments() -> None:
     board.mkdir(parents=True, exist_ok=True)
     for n in range(130):
         when = random_past()
-        for name in [f"board_minutes_{when:%Y_%m}_{n}.txt", f"Copy of board_minutes_{when:%Y_%m}_{n}.txt",
-                     f"board_minutes_{when:%Y_%m}_{n}_FINAL.txt"]:
-            p = board / name
-            p.write_text("Board meeting minutes\n" + fake.paragraph(nb_sentences=12), encoding="utf-8")
+        minutes = "Board meeting minutes\n" + fake.paragraph(nb_sentences=12)
+        for name in [f"board_minutes_{when:%Y_%m}_{n}.txt", f"Copy of board_minutes_{when:%Y_%m}_{n}.txt"]:
+            p = board / name  # "Copy of" = exact duplicate, like a real copy-paste
+            p.write_text(minutes, encoding="utf-8")
             set_age(p, when)
+        final = board / f"board_minutes_{when:%Y_%m}_{n}_FINAL.txt"  # edited version: similar name, new content
+        final.write_text(minutes + "\nApproved with amendments.\n", encoding="utf-8")
+        set_age(final, when + timedelta(days=random.randint(1, 14)))
 
 
 # ---------------------------------------------------------------- the risky leftovers an assessment must find
