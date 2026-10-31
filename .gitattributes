@@ -1,0 +1,8 @@
+# Normalise line endings: LF in the repo and for most files (Linux/Azure friendly),
+# CRLF only for Windows-only scripts.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.pdf binary
