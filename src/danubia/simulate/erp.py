@@ -194,7 +194,7 @@ def build_products() -> pl.DataFrame:
     rows = []
     for product_id in range(1, N_PRODUCTS + 1):
         category, material = random.choice(list(categories.items()))
-        price = round(random.uniform(0.40, 85.0), 2)
+        price = round(random.uniform(0.15, 12.0), 2)  # small stamped and moulded parts
         rows.append(
             {
                 "product_id": product_id,
@@ -229,7 +229,7 @@ def build_orders_and_invoices(
         else:
             status = random.choice(["open", "open", "shipped"])
         ship_date = None if status == "open" else min(order_date + timedelta(days=random.randint(2, 10)), TODAY)
-        quantity = random.randint(50, 5000)
+        quantity = random.randint(100, 2000)
         unit_price = round(prices[product_id] * random.uniform(0.95, 1.05), 2)
 
         orders.append(
