@@ -7,6 +7,7 @@ loaded automatically (real environment variables win). Nothing secret is hard-co
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from sqlalchemy import URL, Engine, create_engine
@@ -37,12 +38,34 @@ def setting(name: str, default: str | None = None) -> str:
     return value
 
 
+SA_PASSWORD_SECRET = "onprem-sql-sa-password"
+
+
+@lru_cache(maxsize=1)
+def sa_password() -> str:
+    """The on-prem SQL 'sa' password.
+
+    Preferred: read from Azure Key Vault (KEY_VAULT_NAME in .env) with your Azure sign-in, so the password
+    never sits in a file. Fallback: SA_PASSWORD environment variable, for someone running the repo without Azure.
+    """
+    vault = os.environ.get("KEY_VAULT_NAME")
+    if vault:
+        from azure.identity import DefaultAzureCredential  # imported here: only needed when Key Vault is used
+        from azure.keyvault.secrets import SecretClient
+
+        # DefaultAzureCredential tries, in order: environment, managed identity (in Azure), then your
+        # 'az login' session on this PC. The same code works locally and later inside Azure.
+        client = SecretClient(f"https://{vault}.vault.azure.net", DefaultAzureCredential())
+        return client.get_secret(SA_PASSWORD_SECRET).value
+    return setting("SA_PASSWORD")
+
+
 def onprem_engine(database: str = "DanubiaERP") -> Engine:
     """SQLAlchemy engine for the simulated on-prem SQL Server running in Docker."""
     url = URL.create(
         "mssql+pyodbc",
         username="sa",
-        password=setting("SA_PASSWORD"),  # URL.create escapes special characters safely
+        password=sa_password(),  # URL.create escapes special characters safely
         host="localhost",
         port=1433,
         database=database,

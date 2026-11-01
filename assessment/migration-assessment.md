@@ -1,6 +1,6 @@
 # Danubia Components: on-premises migration assessment
 
-Generated 2026-10-31 15:19 by `src/danubia/assess/inventory.py`. Contains counts, sizes and paths only; no personal data values or secrets.
+Generated 2026-11-01 15:03 by `src/danubia/assess/inventory.py`. Contains counts, sizes and paths only; no personal data values or secrets.
 
 ## Executive summary
 
