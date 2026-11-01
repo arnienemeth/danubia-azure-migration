@@ -1,0 +1,74 @@
+# Deploys the Danubia landing zone (infra/) to Azure.
+# - Pull request: lint + what-if preview only (shows what WOULD change)
+# - Merge to main: deploy
+# Authentication: OpenID Connect (OIDC). No password or client secret is stored in GitHub.
+name: platform
+
+on:
+  push:
+    branches: [main]
+    paths: ['infra/**', '.github/workflows/platform.yml']
+  pull_request:
+    paths: ['infra/**', '.github/workflows/platform.yml']
+  workflow_dispatch: # allows a manual run from the Actions tab
+
+permissions:
+  id-token: write # lets the job request a short-lived OIDC token from GitHub
+  contents: read
+
+concurrency:
+  group: platform-${{ github.ref }}
+  cancel-in-progress: false # never cancel a deployment halfway
+
+env:
+  LOCATION: swedencentral
+  BUDGET_EMAIL: ${{ secrets.BUDGET_EMAIL }} # read by main.dev.bicepparam; a secret so logs mask it
+
+jobs:
+  validate:
+    name: Lint and what-if
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Lint Bicep
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
+
+      - name: What-if preview
+        run: |
+          az deployment sub what-if \
+            --name danubia-landing-zone \
+            --location "$LOCATION" \
+            --template-file infra/main.bicep \
+            --parameters infra/main.dev.bicepparam
+
+  deploy:
+    name: Deploy
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy landing zone
+        run: |
+          az deployment sub create \
+            --name danubia-landing-zone \
+            --location "$LOCATION" \
+            --template-file infra/main.bicep \
+            --parameters infra/main.dev.bicepparam \
+            --query "{state:properties.provisioningState, outputs:properties.outputs}" -o json
