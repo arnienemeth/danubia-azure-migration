@@ -31,6 +31,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check repository settings
+        # Fails fast with a clear message instead of a cryptic Azure error later. Never prints the value.
+        run: |
+          for v in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
+            [ -n "${!v}" ] || { echo "::error::Repository variable $v is missing"; exit 1; }
+          done
+          email="$(echo "$BUDGET_EMAIL" | tr -d '[:space:]')"
+          [[ "$email" =~ ^[^@\"\'=]+@[^@\"\']+\.[A-Za-z]{2,}$ ]] || {
+            echo "::error::Secret BUDGET_EMAIL is not a plain e-mail address. Re-enter it without quotes, spaces or 'BUDGET_EMAIL='."
+            exit 1
+          }
+          echo "Repository settings OK"
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
       - name: Sign in to Azure with OIDC
         uses: azure/login@v2
         with:

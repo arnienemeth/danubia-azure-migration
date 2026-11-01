@@ -32,9 +32,20 @@ if (-not $spId) {
 
 # 2. Federated credentials: which GitHub tokens Azure will accept
 $existing = az ad app federated-credential list --id $appId --query '[].name' -o tsv
+# GitHub can send the subject in two formats:
+#   classic:  repo:owner/name:...
+#   with IDs: repo:owner@<ownerId>/name@<repoId>:...   (IDs never get reused, so a renamed or re-created
+#             repo with the same name cannot impersonate this one)
+# Register both, so the pipeline works whichever format GitHub sends.
+$gh = Invoke-RestMethod "https://api.github.com/repos/$Repo"
+$owner, $name = $Repo.Split('/')
+$withIds = "repo:${owner}@$($gh.owner.id)/${name}@$($gh.id)"
+Write-Host "GitHub IDs: owner $($gh.owner.id), repo $($gh.id)"
 $creds = @(
     @{ name = 'github-main'; subject = "repo:${Repo}:ref:refs/heads/main" },
-    @{ name = 'github-pull-request'; subject = "repo:${Repo}:pull_request" }
+    @{ name = 'github-pull-request'; subject = "repo:${Repo}:pull_request" },
+    @{ name = 'github-main-ids'; subject = "${withIds}:ref:refs/heads/main" },
+    @{ name = 'github-pull-request-ids'; subject = "${withIds}:pull_request" }
 )
 foreach ($c in $creds) {
     if ($existing -contains $c.name) { Write-Host "Federated credential $($c.name) exists."; continue }

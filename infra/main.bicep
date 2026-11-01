@@ -34,6 +34,7 @@ var tags = {
   managedBy: 'bicep'
 }
 var regionCode = 'swc'
+var alertEmails = [trim(budgetEmail)] // trim: a pasted secret often carries a space or line break
 
 // ---------------------------------------------------------------- resource groups
 // One group per lifecycle: shared platform, data (SQL, storage), applications
@@ -117,21 +118,21 @@ resource budget 'Microsoft.Consumption/budgets@2023-05-01' = {
         operator: 'GreaterThanOrEqualTo'
         threshold: 50
         thresholdType: 'Actual'
-        contactEmails: [budgetEmail]
+        contactEmails: alertEmails
       }
       actual100: {
         enabled: true
         operator: 'GreaterThanOrEqualTo'
         threshold: 100
         thresholdType: 'Actual'
-        contactEmails: [budgetEmail]
+        contactEmails: alertEmails
       }
       forecast100: {
         enabled: true
         operator: 'GreaterThanOrEqualTo'
         threshold: 100
         thresholdType: 'Forecasted'
-        contactEmails: [budgetEmail]
+        contactEmails: alertEmails
       }
     }
   }
